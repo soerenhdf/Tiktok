@@ -1,4 +1,3 @@
-// server.js
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
@@ -10,10 +9,11 @@ const wss = new WebSocket.Server({ server });
 
 const PORT = process.env.PORT || 3000;
 
-// Ersetze hier deinen TikTok-Namen (ohne @)
+// TikTok-Nutzername hier eintragen (ohne @)
 const TIKTOK_USERNAME = "dein_nutzername";
 
-app.use(express.static('public'));
+// Statt 'public' jetzt Hauptverzeichnis als statischer Ordner
+app.use(express.static(__dirname));
 
 let clients = new Set();
 
@@ -24,11 +24,10 @@ wss.on('connection', (ws) => {
   });
 });
 
-// Funktion um Nachricht an alle Clients zu senden
 function broadcast(data) {
   const message = JSON.stringify(data);
   clients.forEach(ws => {
-    if(ws.readyState === WebSocket.OPEN) {
+    if (ws.readyState === WebSocket.OPEN) {
       ws.send(message);
     }
   });
@@ -42,14 +41,11 @@ async function startTikTokListener() {
 
     tiktokConnection.on('gift', (data) => {
       const username = data.uniqueId;
-      // Beispiel: giftType 1 = 1 Coin, sonst 3 Coins
-      // Du kannst hier anpassen je nach Geschenk
       let coins = 1;
       if (data.giftType && data.giftType !== 1) coins = 3;
 
       console.log(`Spende von ${username}: ${coins} Coin(s)`);
 
-      // Sende an Overlay
       broadcast({
         type: 'gift',
         username: username,
@@ -64,7 +60,6 @@ async function startTikTokListener() {
 
 startTikTokListener();
 
-const PORT_USED = PORT;
-server.listen(PORT_USED, () => {
-  console.log(`Server läuft auf http://localhost:${PORT_USED}`);
+server.listen(PORT, () => {
+  console.log(`Server läuft auf http://localhost:${PORT}`);
 });
