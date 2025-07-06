@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TikTok Wall of Fame</title>
+<style>
+  body {
+    background-color: black;
+    color: white;
+    font-family: Arial, sans-serif;
+    text-align: center;
+    padding: 20px;
+  }
+  .headline {
+    font-size: 24px;
+    margin-bottom: 30px;
+  }
+  .wall {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+  }
+  .entry {
+    opacity: 0.8;
+    animation: fadein 0.5s ease;
+    padding: 5px 15px;
+    border-radius: 5px;
+    background-color: #222;
+    width: 80%;
+    box-sizing: border-box;
+  }
+  .small {
+    font-size: 18px;
+    color: #aaa;
+  }
+  .big {
+    font-size: 28px;
+    color: gold;
+    font-weight: bold;
+  }
+  @keyframes fadein {
+    from { opacity: 0; }
+    to { opacity: 0.8; }
+  }
+</style>
+</head>
+<body>
+
+<div class="headline">
+  1 coin = 1Min on the wall (small) | 3 coins = 5Min on the wall (big)
+</div>
+
+<div class="wall" id="wall"></div>
+
+<script>
+  const wall = document.getElementById('wall');
+
+  // Aktive Einträge speichern: { element, timeoutId }
+  const activeEntries = new Map();
+
+  function addUser(username, coins) {
+    // Falls User schon angezeigt wird, lösche alten Timer und Eintrag
+    if (activeEntries.has(username)) {
+      const old = activeEntries.get(username);
+      clearTimeout(old.timeoutId);
+      wall.removeChild(old.element);
+      activeEntries.delete(username);
+    }
+
+    const entry = document.createElement('div');
+    entry.classList.add('entry');
+
+    if (coins >= 3) {
+      entry.classList.add('big');
+      entry.innerText = `follow @${username}`;
+      wall.appendChild(entry);
+
+      const timeoutId = setTimeout(() => {
+        wall.removeChild(entry);
+        activeEntries.delete(username);
+      }, 5 * 60 * 1000); // 5 Minuten
+
+      activeEntries.set(username, {element: entry, timeoutId});
+    } else {
+      entry.classList.add('small');
+      entry.innerText = `follow @${username}`;
+      wall.appendChild(entry);
+
+      const timeoutId = setTimeout(() => {
+        wall.removeChild(entry);
+        activeEntries.delete(username);
+      }, 1 * 60 * 1000); // 1 Minute
+
+      activeEntries.set(username, {element: entry, timeoutId});
+    }
+  }
+
+  // WebSocket-Verbindung aufbauen (ersetze Host, wenn gehostet)
+  const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
+  const socket = new WebSocket(`${protocol}://${location.host}`);
+
+  socket.onopen = () => {
+    console.log("WebSocket verbunden");
+  };
+
+  socket.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      if (data.type === 'gift') {
+        addUser(data.username, data.coins);
+      }
+    } catch(e) {
+      console.error("Fehler beim Parsen:", e);
+    }
+  };
+
+  socket.onerror = (e) => {
+    console.error("WebSocket Fehler:", e);
+  };
+</script>
+
+</body>
+</html>
